@@ -1,7 +1,7 @@
 {
     "name": "debugger-for-ios-web",
     "displayName": "Debugger for iOS Web",
-    "version": "0.1.2",
+    "version": "0.1.3",
     "icon": ".readme/icon.png",
     "description": "Debug your JavaScript code running in Safari on iOS devices from VS Code.",
     "repository": {
@@ -19,7 +19,7 @@
     "license": "SEE LICENSE IN LICENSE.txt",
     "dependencies": {
         "vscode-chrome-debug-core": "0.1.16",
-        "localtunnel": "1.8.1"
+        "ngrok": "^2.2.2"
     },
     "optionalDependencies": {
         "vs-libimobile": "^0.0.3"

@@ -4,7 +4,7 @@
  
 import {spawn, ChildProcess} from 'child_process';
 import * as Url from 'url';
-import * as localtunnel from 'localtunnel';
+import * as ngrok from 'ngrok';
 
 import {ChromeDebugAdapter, utils, logger} from 'vscode-chrome-debug-core';
 import * as iosUtils from './utilities';
@@ -12,7 +12,7 @@ import {IProxySettings} from './iosDebugAdapterInterfaces';
 
 export class IOSDebugAdapter extends ChromeDebugAdapter {
     private _proxyProc: ChildProcess;
-    private _localTunnel: ILocalTunnelInfoObject;
+    private _hasLocalTunnel: boolean = false;
 
     constructor(chromeConnection) {
         super(chromeConnection)
@@ -36,19 +36,19 @@ export class IOSDebugAdapter extends ChromeDebugAdapter {
         
         if (tunnelPort) {
             launchPromise = new Promise((resolve, reject) => {
-                logger.log('Launching localtunnel against port ' + tunnelPort);
-                localtunnel(tunnelPort, (err: Error, tunnel: ILocalTunnelInfoObject) => {
+                logger.log('Launching ngrok against port ' + tunnelPort);
+                ngrok.connect(tunnelPort, (err: Error, url: string) => {
                     // Navigate the to the given tunneled url
                     if (err) {
-                        logger.error('Failed to launch localtunnel.');
+                        logger.error('Failed to launch ngrok.');
                         return utils.errP(err);
                     }
 
                     logger.log('Success.' + tunnelPort);
-                    
+                    this._hasLocalTunnel = true;
+
                     // Set the store member and listen for any errors
-                    this._localTunnel = tunnel;
-                    this._localTunnel.on('error', (err) => {
+                    ngrok.once('error', (err) => {
                         logger.log('Tunneling proxy error: ' + err);
                         this.terminateSession();
                     });
@@ -60,7 +60,7 @@ export class IOSDebugAdapter extends ChromeDebugAdapter {
                         pathname = url.pathname;
                     }
                     
-                    let navigateTo = Url.resolve(this._localTunnel.url, pathname);
+                    let navigateTo = Url.resolve(url, pathname);
                     resolve(navigateTo);
                 });
             });
@@ -93,9 +93,9 @@ export class IOSDebugAdapter extends ChromeDebugAdapter {
     }
     
     public clearEverything(): void {
-        if (this._localTunnel) {
-            this._localTunnel.close();
-            this._localTunnel = null;
+        if (this._hasLocalTunnel) {
+            ngrok.kill();
+            this._hasLocalTunnel = false;
         }
                 
         if (this._proxyProc) {  
